@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+	"github/IM_gin+vue/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -26,4 +28,13 @@ type UserBasic struct {
 
 func (table *UserBasic) TableName() string {
 	return "user_basic"
+}
+
+func GetUserList() []*UserBasic {
+	data := make([]*UserBasic, 10)
+	utils.DB.Find(&data)
+	for _, v := range data {
+		fmt.Println(v)
+	}
+	return data
 }
