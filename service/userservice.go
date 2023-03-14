@@ -5,11 +5,13 @@ import (
 	"github/IM_gin+vue/models"
 	"github/IM_gin+vue/utils"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 // GetUserList
@@ -90,11 +92,40 @@ func CreateUser(c *gin.Context) {
 // FindUserByNameAndPwd
 // @Summary 使用用户名密码查询用户
 // @Tags 用户模块
-// @param name query string false "用户名"
-// @param password query string false "密码"
+// @param name formData string false "用户名"
+// @param password formData string false "密码"
 // @Success 200 {string} json{"code","message"}
 // @Router /user/findUserByNameAndPwd [post]
 func FindUserByNameAndPwd(c *gin.Context) {
+
+	name := c.PostForm("name")
+	password := c.PostForm("password")
+
+	user := models.FindUserByName(name)
+	if user.Name == "" {
+		c.JSON(-1, gin.H{
+			"code":    -1,
+			"message": "该用户不存在！",
+			"data":    user,
+		})
+		return
+	}
+	flag := utils.ValidPassword(password, user.Salt, user.PassWord)
+	if !flag {
+		c.JSON(-1, gin.H{
+			"code":    -1,
+			"message": "密码不正确！",
+			"data":    nil, //不能返回user,不然就能看到密码了
+		})
+		return
+	}
+	pwd := utils.MakePassword(password, user.Salt)
+	data := models.FindUserByNameAndPwd(name, pwd)
+	c.JSON(200, gin.H{
+		"code":    0,
+		"message": "登录成功",
+		"data":    data,
+	})
 
 }
 
@@ -110,18 +141,21 @@ func DeleteUser(c *gin.Context) {
 	user.ID = uint(id)
 	models.DeleteUser(user)
 	c.JSON(200, gin.H{
+		"code":    0,
 		"message": "删除用户成功！！！",
+		"data":    user,
 	})
 }
 
 // UpdateUser
 // @Summary 更新用户
 // @Tags 用户模块
-// @param id query string false "id"
-// @param name query string false "name"
-// @param password query string false "password"
-// @param phone query string false "phone"
-// @param email query string false "email"
+// @param id formData string false "id"
+// @param name formData string false "name"
+// @param password formData string false "password"
+// @param phone formData string false "phone"
+// @param icon formData string false "icon"
+// @param email formData string false "email"
 // @Success 200 {string} json{"code","message"}
 // @Router /user/createUser [post]
 func UpdateUser(c *gin.Context) {
@@ -131,6 +165,7 @@ func UpdateUser(c *gin.Context) {
 	user.Name = c.PostForm("name")
 	user.PassWord = c.PostForm("password")
 	user.Phone = c.PostForm("phone")
+	user.Avater = c.PostForm("icon")
 	user.Email = c.PostForm("email")
 	fmt.Println("update :", user)
 
@@ -138,17 +173,23 @@ func UpdateUser(c *gin.Context) {
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(200, gin.H{
+			"code":    -1,
 			"message": "修改参数不匹配！！",
+			"data":    user,
 		})
 	} else {
 		models.UpdateUser(user)
 		c.JSON(200, gin.H{
+			"code":    0,
 			"message": "修改用户成功！",
+			"data":    user,
 		})
 	}
+}
 
-	models.CreateUser(user)
-	c.JSON(200, gin.H{
-		"message": "新增用户成功！",
-	})
+// 防止跨域站点伪造请求
+var upGrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }

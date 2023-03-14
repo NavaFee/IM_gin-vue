@@ -36,23 +36,23 @@ paths:
     post:
       parameters:
       - description: id
-        in: query
+        in: formData
         name: id
         type: string
       - description: name
-        in: query
+        in: formData
         name: name
         type: string
       - description: password
-        in: query
+        in: formData
         name: password
         type: string
       - description: phone
-        in: query
+        in: formData
         name: phone
         type: string
       - description: email
-        in: query
+        in: formData
         name: email
         type: string
       responses:
@@ -76,6 +76,25 @@ paths:
           schema:
             type: string
       summary: 删除用户
+      tags:
+      - 用户模块
+  /user/findUserByNameAndPwd:
+    post:
+      parameters:
+      - description: 用户名
+        in: formData
+        name: name
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        type: string
+      responses:
+        "200":
+          description: code","message"}
+          schema:
+            type: string
+      summary: 使用用户名密码查询用户
       tags:
       - 用户模块
   /user/getUserList:
