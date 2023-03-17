@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github/IM_gin+vue/models"
 	"github/IM_gin+vue/utils"
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -192,4 +193,36 @@ var upGrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+// 发送消息
+func SendMsg(c *gin.Context) {
+	ws, err := upGrader.Upgrade(c.Writer, c.Request, nil) //升级为websocket协议
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func(ws *websocket.Conn) {
+		err = ws.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}(ws)
+	MsgHandler(c, ws)
+}
+
+// 消息发送的操作件
+func MsgHandler(c *gin.Context, ws *websocket.Conn) {
+	for {
+		msg, err := utils.Subscribe(c, utils.PublishKey)
+		if err != nil {
+			fmt.Println("MsgHandler 发送失败", err)
+		}
+		tm := time.Now().Format("2006-01-02 15:04:05")
+		m := fmt.Sprintf("[ws][%s]:%s", tm, msg)
+		err = ws.WriteMessage(1, []byte(m))
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
 }
