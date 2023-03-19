@@ -220,9 +220,14 @@ func MsgHandler(c *gin.Context, ws *websocket.Conn) {
 		}
 		tm := time.Now().Format("2006-01-02 15:04:05")
 		m := fmt.Sprintf("[ws][%s]:%s", tm, msg)
+		fmt.Println(m)
 		err = ws.WriteMessage(1, []byte(m))
 		if err != nil {
 			log.Fatalln(err)
 		}
 	}
+}
+
+func SendUserMsg(c *gin.Context) {
+	models.Chat(c.Writer, c.Request)
 }

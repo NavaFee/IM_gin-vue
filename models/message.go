@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/spf13/viper"
 	"gopkg.in/fatih/set.v0"
 	"gorm.io/gorm"
 )
@@ -80,7 +79,7 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 		HeartbeatTime: currentTime,                //心跳时间
 		LoginTime:     currentTime,                //登录时间
 		DataQueue:     make(chan []byte, 50),
-		GroupSets:     set.New(set.ThreadSafe),
+		GroupSets:     set.New(set.ThreadSafe), //集合
 	}
 	//3.用户关系
 	//4.userid 和 node 绑定并加锁
@@ -89,7 +88,7 @@ func Chat(writer http.ResponseWriter, request *http.Request) {
 	rwLocker.Unlock()
 	//5. 完成发送逻辑
 	go sendProc(node)
-	//6. 完成接收逻辑
+	//6. 完成接收逻辑         自己也会接收到自己的消息
 	go recvProc(node)
 
 	sendMsg(userId, []byte("欢迎进入聊天系统"))
@@ -135,6 +134,9 @@ func recvProc(node *Node) {
 			dispatch(data)
 			broadMsg(data) // todo 将消息广播到局域网
 			fmt.Println("[ws] recvProc <<<<<<<", string(data))
+			// if string(data) == "abc" {
+			// 	node.Conn.WriteMessage(1, []byte("我已经收到消息啦"))
+			// }
 		}
 	}
 }
@@ -155,8 +157,8 @@ func init() {
 // 完成udp数据发送协程
 func udpSendProc() {
 	con, err := net.DialUDP("udp", nil, &net.UDPAddr{
-		IP:   net.IPv4(192, 168, 0, 255),
-		Port: viper.GetInt("port.udp"),
+		IP:   net.IPv4(127, 0, 0, 1), // 路由的网关地址
+		Port: 30000,
 	})
 	defer con.Close()
 	if err != nil {
@@ -180,7 +182,7 @@ func udpSendProc() {
 func udpRecvProc() {
 	con, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   net.IPv4zero, //全零，所有的都可以接收
-		Port: viper.GetInt("port.udp"),
+		Port: 30000,
 	})
 	if err != nil {
 		fmt.Println(err)
